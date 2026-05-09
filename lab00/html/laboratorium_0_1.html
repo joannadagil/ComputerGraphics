@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>GRAFIKA KOMPUTEROWA LAB_0</title>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$','$'], ['\\(','\\)']],
+    tags: 'all'
+  }
+};
+</script>
+<script type="text/javascript" async 
+src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+</script>
+
+<style>
+body > * {
+  max-width: 42em;
+}
+body {
+  font-family: "Roboto Condensed", sans-serif;
+  padding-left: 7.5em;
+  padding-right: 7.5em;
+}
+pre, code {
+  max-width: 50em;
+  font-family: monospace;
+}
+pre.oct-code {
+  border: 1px solid Grey;
+  padding: 5px;
+}
+pre.oct-code-output {
+  margin-left: 2em;
+}
+span.comment {
+  color: ForestGreen;
+}
+span.keyword {
+  color: Blue;
+}
+span.string {
+  color: DarkOrchid;
+}
+footer {
+  margin-top: 2em;
+  font-size: 80%;
+}
+a, a:visited {
+  color: Blue;
+}
+h2 {
+  font-family: "Roboto Condensed", serif;
+  margin-top: 1.5em;
+}
+h2 a, h2 a:visited {
+  color: Black;
+}
+</style>
+
+</head>
+<body>
+<h1>GRAFIKA KOMPUTEROWA LAB_0</h1>
+
+<p><b>Joanna Dagil 231008</b></p>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#node1">1. CEL CWICZENIA</a></li>
+<li><a href="#node2">2.	MATLAB - KILKA OGOLNYCH ZASAD I PRZYKLADOW</a></li>
+<li><a href="#node3">2.1. Generowanie i reprezentacja danych/zmiennych</a></li>
+<li><a href="#node4">2.2. Dzialania na macierzach</a></li>
+<li><a href="#node5">2.3.	Grafika</a></li>
+<li><a href="#node6">2.4.	Dane obrazowe</a></li>
+<li><a href="#node7">2.5.	Animacje (tworzenie, odczyt i zapis)</a></li>
+<li><a href="#node8">2.6 FUNKCJE</a></li>
+<li><a href="#node9">Typowy koniec skryptu</a></li>
+</ul>
+<h2><a id="node1">1. CEL CWICZENIA</a></h2>
+<p>Zapoznanie sie z podstawowymi cechami srodowiska Matlab i przykladami popularnych instrukcji.</p>
+<h2><a id="node2">2.	MATLAB - KILKA OGOLNYCH ZASAD I PRZYKLADOW</a></h2><h2><a id="node3">2.1. Generowanie i reprezentacja danych/zmiennych</a></h2>
+<p>Przyklady deklaracji (i nadawania wartosci) zmiennym.</p>
+
+<pre class="oct-code">x = 2.1;
+y = 2.1 + 1i*3.3;
+X = [1, 4, 6];
+Y = [1; 4; 6];
+Y = X<span class="string">';</span>
+YY = [1 4 6; 5 6 9];
+
+
+<span class="comment">% INNE PRZYKLADY</span>
+<span class="comment">% Wygeneruj dane opisane funkcja sin w zakresie od -PI do +PI z przyrostem</span>
+<span class="comment">% argumentu rownym 0.01 (wykres wyglada wowczas jak ciagly)</span>
+<span class="comment">% Wygeneruj dane losowe w tym samym zakresie i z tym samym przyrostem,</span>
+<span class="comment">% wartosci danych powinny oscylowac pomiedzy -0.5 i +0.5.</span>
+
+t = -pi:0.01:pi;           <span class="comment">% dziedzina</span>
+x1 = sin(t);               <span class="comment">% wartosci sinusa</span>
+n = length(t);             <span class="comment">% liczba probek w dziedzinie t</span>
+x2 = -0.5+rand(1,n);       <span class="comment">% dane losowe pomiedzy -0.5 i +0.5</span>
+</pre>
+<h2><a id="node4">2.2. Dzialania na macierzach</a></h2>
+<pre class="oct-code">XY = X*Y;
+YX = Y*X;
+A = [1, 2, 1; 4, 5, 6; 7, 8, 9];
+B = [9, 8, 7; 6, 5, 4; 1, 2, 1];
+AplusB = A + B;
+AmmB = A * B;
+AmiB = A .* B;
+AdiB = A ./ B;
+AdmB = A / B;
+AddB = A * inv(B);</pre>
+<h2><a id="node5">2.3.	Grafika</a></h2>
+<p>W przypadku kreslenia (wizualizacji) danych 1D, np. szeregow czasowych,
+postepujemy zazwyczaj w nastepujacy (lub podobny) sposob:</p>
+
+<pre class="oct-code">figure(1); plot(t, x1);
+title(<span class="string">'wykres'</span>), xlabel(<span class="string">'czas'</span>), ylabel(<span class="string">'sinus'</span>);
+hold on
+plot(t,x2,<span class="string">'r'</span>);
+hold off;
+
+figure(2); stem(x1(250:307));
+figure(3); bar(t(250:307),x1(250:307));
+
+x3 = x1-0.1+0.2.*rand(1,n);      <span class="comment">% dane sinusoidalne z losowym szumem</span>
+
+figure(4)
+plot(t,x3)
+title(<span class="string">'Zaszumione dane sinusoidalne'</span>)
+ylabel(<span class="string">'wartosc'</span>)
+xlabel(<span class="string">'czas'</span>);</pre>
+<img src="laboratorium_0_1-1.png" alt="laboratorium_0_1-1.png"><img src="laboratorium_0_1-2.png" alt="laboratorium_0_1-2.png"><img src="laboratorium_0_1-3.png" alt="laboratorium_0_1-3.png"><img src="laboratorium_0_1-4.png" alt="laboratorium_0_1-4.png"><h2><a id="node6">2.4.	Dane obrazowe</a></h2>
+<p>Matlab akceptuje (w sensie czytania i zapisu) obrazy w bardzo wielu
+formatach (jpg, gif, bmp, png, itd.) ale ich wewnetrzna reprezentacja
+jest zawsze taka sama.</p>
+
+<pre class="oct-code">pkg load image
+
+ImCol = uint8(zeros(128, 128, 3));
+ImGray = uint8(zeros(128, 128));
+
+<span class="comment">% Typowa sekwencja wczytania, przetwarzania, wyswietlania i zapisu obrazu:</span>
+Im = imread(<span class="string">'obraz.bmp'</span>);
+figure(5); imshow(Im); <span class="comment">% wyswietlenie wczytanego obrazu</span>
+ImZ = double(Im); <span class="comment">% zamiana na postac zmiennoprzecinkowa...</span>
+ImZ = 255 - ImZ; <span class="comment">% negatyw</span>
+figure(6); imshow(ImZ/255); <span class="comment">% dlaczego dzielimy przez 255?</span>
+ImNew = uint8(ImZ); <span class="comment">% powrot do reprezentacji bajtowej</span>
+imwrite(ImNew,<span class="string">'obraz_nowy.jpg'</span>); <span class="comment">% zapis do foldera</span>
+</pre>
+<img src="laboratorium_0_1-5.png" alt="laboratorium_0_1-5.png"><img src="laboratorium_0_1-6.png" alt="laboratorium_0_1-6.png"><h2><a id="node7">2.5.	Animacje (tworzenie, odczyt i zapis)</a></h2>
+<p>Typowa sekwencja odczytu i zapisu pliku video</p>
+
+<pre class="oct-code"><span class="comment">% Nie zaimplementowanie w Octave</span>
+<span class="comment">%v = VideoReader('film_01.avi');</span>
+<span class="comment">%v2 = VideoWriter('film_01','MPEG-4');</span>
+<span class="comment">%open(v2);</span>
+<span class="comment">%while hasFrame(v)</span>
+<span class="comment">%    klatka = readFrame(v);</span>
+<span class="comment">%    % ewentualne przetworzenie klatki</span>
+<span class="comment">%    klatka1 = imresize(klatka,0.5);</span>
+<span class="comment">%    writeVideo(v2,klatka1)  ;</span>
+<span class="comment">%end</span>
+<span class="comment">%close(v2);</span>
+</pre>
+<h2><a id="node8">2.6 FUNKCJE</a></h2>
+<p>Przyklady uzycia funkcji</p>
+
+<pre class="oct-code"><span class="keyword">function</span>  a = dodaj(b,c)
+    a = b+c;
+<span class="keyword">endfunction</span>
+
+b = 25; c = 75;
+a = dodaj(b,c)
+b1 = 4.567; c1 = 1.017 + 1i*0.589;
+a1 = dodaj(b1,c1)</pre>
+
+<pre class="oct-code-output">a = 100
+a1 =  5.5840 + 0.5890i
+</pre>
+<h2><a id="node9">Typowy koniec skryptu</a></h2>
+<pre class="oct-code"><span class="comment">% clear all; % usuniecie wszystkich zmiennych</span>
+<span class="comment">% close all; % zamkniecie wszystkich wykresow</span>
+<span class="comment">% clc % zresetowanie okna komend</span>
+</pre>
+
+<footer>
+<hr>
+<a href="https://www.octave.org">Published with GNU Octave 10.1.0</a>
+</footer>
+<!--
+##### SOURCE BEGIN #####
+%% GRAFIKA KOMPUTEROWA LAB_0
+% *Joanna Dagil 231008*
+
+%% 1. CEL CWICZENIA
+% Zapoznanie sie z podstawowymi cechami srodowiska Matlab i przykladami popularnych instrukcji.
+
+%% 2.	MATLAB - KILKA OGOLNYCH ZASAD I PRZYKLADOW
+
+%% 2.1. Generowanie i reprezentacja danych/zmiennych
+% Przyklady deklaracji (i nadawania wartosci) zmiennym.
+x = 2.1;
+y = 2.1 + 1i*3.3;
+X = [1, 4, 6];
+Y = [1; 4; 6];
+Y = X';
+YY = [1 4 6; 5 6 9];
+
+
+% INNE PRZYKLADY
+% Wygeneruj dane opisane funkcja sin w zakresie od -PI do +PI z przyrostem
+% argumentu rownym 0.01 (wykres wyglada wowczas jak ciagly)
+% Wygeneruj dane losowe w tym samym zakresie i z tym samym przyrostem,
+% wartosci danych powinny oscylowac pomiedzy -0.5 i +0.5.
+
+t = -pi:0.01:pi;           % dziedzina
+x1 = sin(t);               % wartosci sinusa
+n = length(t);             % liczba probek w dziedzinie t
+x2 = -0.5+rand(1,n);       % dane losowe pomiedzy -0.5 i +0.5
+
+%% 2.2. Dzialania na macierzach
+XY = X*Y;
+YX = Y*X;
+A = [1, 2, 1; 4, 5, 6; 7, 8, 9];
+B = [9, 8, 7; 6, 5, 4; 1, 2, 1];
+AplusB = A + B;
+AmmB = A * B;
+AmiB = A .* B;
+AdiB = A ./ B;
+AdmB = A / B;
+AddB = A * inv(B);
+
+%% 2.3.	Grafika
+% W przypadku kreslenia (wizualizacji) danych 1D, np. szeregow czasowych,
+% postepujemy zazwyczaj w nastepujacy (lub podobny) sposob:
+
+figure(1); plot(t, x1);
+title('wykres'), xlabel('czas'), ylabel('sinus');
+hold on
+plot(t,x2,'r');
+hold off;
+
+figure(2); stem(x1(250:307));
+figure(3); bar(t(250:307),x1(250:307));
+
+x3 = x1-0.1+0.2.*rand(1,n);      % dane sinusoidalne z losowym szumem
+
+figure(4)
+plot(t,x3)
+title('Zaszumione dane sinusoidalne')
+ylabel('wartosc')
+xlabel('czas');
+
+%% 2.4.	Dane obrazowe
+% Matlab akceptuje (w sensie czytania i zapisu) obrazy w bardzo wielu
+% formatach (jpg, gif, bmp, png, itd.) ale ich wewnetrzna reprezentacja
+% jest zawsze taka sama.
+pkg load image
+
+ImCol = uint8(zeros(128, 128, 3));
+ImGray = uint8(zeros(128, 128));
+
+% Typowa sekwencja wczytania, przetwarzania, wyswietlania i zapisu obrazu:
+Im = imread('obraz.bmp');
+figure(5); imshow(Im); % wyswietlenie wczytanego obrazu
+ImZ = double(Im); % zamiana na postac zmiennoprzecinkowa...
+ImZ = 255 - ImZ; % negatyw
+figure(6); imshow(ImZ/255); % dlaczego dzielimy przez 255?
+ImNew = uint8(ImZ); % powrot do reprezentacji bajtowej
+imwrite(ImNew,'obraz_nowy.jpg'); % zapis do foldera
+
+%% 2.5.	Animacje (tworzenie, odczyt i zapis)
+% Typowa sekwencja odczytu i zapisu pliku video
+
+% Nie zaimplementowanie w Octave
+%v = VideoReader('film_01.avi');
+%v2 = VideoWriter('film_01','MPEG-4');
+%open(v2);
+%while hasFrame(v)
+%    klatka = readFrame(v);
+%    % ewentualne przetworzenie klatki
+%    klatka1 = imresize(klatka,0.5);
+%    writeVideo(v2,klatka1)  ;
+%end
+%close(v2);
+
+%% 2.6 FUNKCJE
+% Przyklady uzycia funkcji
+function  a = dodaj(b,c)
+    a = b+c;
+endfunction
+
+b = 25; c = 75;
+a = dodaj(b,c)
+b1 = 4.567; c1 = 1.017 + 1i*0.589;
+a1 = dodaj(b1,c1)
+
+
+
+%% Typowy koniec skryptu
+
+% clear all; % usuniecie wszystkich zmiennych
+% close all; % zamkniecie wszystkich wykresow
+% clc % zresetowanie okna komend
+##### SOURCE END #####
+-->
+</body>
+</html>

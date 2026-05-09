@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>GRAFIKA KOMPUTEROWA LAB_1</title>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$','$'], ['\\(','\\)']],
+    tags: 'all'
+  }
+};
+</script>
+<script type="text/javascript" async 
+src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+</script>
+
+<style>
+body > * {
+  max-width: 42em;
+}
+body {
+  font-family: "Roboto Condensed", sans-serif;
+  padding-left: 7.5em;
+  padding-right: 7.5em;
+}
+pre, code {
+  max-width: 50em;
+  font-family: monospace;
+}
+pre.oct-code {
+  border: 1px solid Grey;
+  padding: 5px;
+}
+pre.oct-code-output {
+  margin-left: 2em;
+}
+span.comment {
+  color: ForestGreen;
+}
+span.keyword {
+  color: Blue;
+}
+span.string {
+  color: DarkOrchid;
+}
+footer {
+  margin-top: 2em;
+  font-size: 80%;
+}
+a, a:visited {
+  color: Blue;
+}
+h2 {
+  font-family: "Roboto Condensed", serif;
+  margin-top: 1.5em;
+}
+h2 a, h2 a:visited {
+  color: Black;
+}
+</style>
+
+</head>
+<body>
+<h1>GRAFIKA KOMPUTEROWA LAB_1</h1>
+
+<p><b>Joanna Dagil 231008</b></p>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#node1">1. CEL CWICZENIA</a></li>
+<li><a href="#node2">2. PRZEKSZTAŁCENIA KOLORÓW</a></li>
+<li><a href="#node3">2.1(a) Funkcja przekształcająca obrazy w formacie RGB do formatu YUV.</a></li>
+<li><a href="#node4">2.1(b) Funkcja przekształcająca obrazy w formacie RGB do formatu YCbCr.</a></li>
+</ul>
+<h2><a id="node1">1. CEL CWICZENIA</a></h2>
+<p>Zapoznanie sie z modelami kolorów i ich przekształceniami.</p>
+<h2><a id="node2">2. PRZEKSZTAŁCENIA KOLORÓW</a></h2><h2><a id="node3">2.1(a) Funkcja przekształcająca obrazy w formacie RGB do formatu YUV.</a></h2>
+<pre class="oct-code">RGB = [255; 0; 0];
+YUV = RGBtoYUV(RGB)
+
+RGB = [255; 0; 0];
+kR = 0.299;
+kG = 0.587;
+kB = 0.114;
+YCbCr = RGBtoYCbCr(RGB, kR, kG, kB)</pre>
+
+<pre class="oct-code-output">error: operator *: nonconformant arguments (op1 is 3x3, op2 is 1x3)
+	in:
+
+
+RGB = [255; 0; 0];
+YUV = RGBtoYUV(RGB)
+
+RGB = [255; 0; 0];
+kR = 0.299;
+kG = 0.587;
+kB = 0.114;
+YCbCr = RGBtoYCbCr(RGB, kR, kG, kB)
+</pre>
+<h2><a id="node4">2.1(b) Funkcja przekształcająca obrazy w formacie RGB do formatu YCbCr.</a></h2>
+<p>gdzie macierz przekształcenia zdefiniowana jest przez współczynniki [kR, kG, kB], a argumentem wyjściowym macierz obrazu w formacie YCbCr. Przykładowe wartości współczynników to kR = 0.299, kG = 0.587 oraz kB = 0.114).</p>
+
+<pre class="oct-code"><span class="comment">% Ścieżki w pierwotnym obrazie</span>
+
+Im = imread(<span class="string">'obraz.bmp'</span>);
+fig = 1;
+fig = show_mono(Im, fig);
+
+<span class="comment">% Ścieżki w obrazie</span>
+
+ImYUV = RGBtoYUV(double(Im));
+fig = show_mono(uint8(ImYUV), fig);
+
+<span class="comment">% Ścieżki w obrazie YCbCr</span>
+
+ImYCbCr = RGBtoYCbCr(double(Im));
+fig = show_mono(uint8(ImYCbCr), fig);</pre>
+<img src="laboratorium_1-1.png" alt="laboratorium_1-1.png"><img src="laboratorium_1-2.png" alt="laboratorium_1-2.png"><img src="laboratorium_1-3.png" alt="laboratorium_1-3.png"><img src="laboratorium_1-4.png" alt="laboratorium_1-4.png"><img src="laboratorium_1-5.png" alt="laboratorium_1-5.png"><img src="laboratorium_1-6.png" alt="laboratorium_1-6.png"><img src="laboratorium_1-7.png" alt="laboratorium_1-7.png"><img src="laboratorium_1-8.png" alt="laboratorium_1-8.png"><img src="laboratorium_1-9.png" alt="laboratorium_1-9.png">
+<footer>
+<hr>
+<a href="https://www.octave.org">Published with GNU Octave 10.1.0</a>
+</footer>
+<!--
+##### SOURCE BEGIN #####
+%% GRAFIKA KOMPUTEROWA LAB_1
+% *Joanna Dagil 231008*
+
+%% 1. CEL CWICZENIA
+% Zapoznanie sie z modelami kolorów i ich przekształceniami.
+
+%% 2. PRZEKSZTAŁCENIA KOLORÓW
+
+%% 2.1(a) Funkcja przekształcająca obrazy w formacie RGB do formatu YUV.
+
+RGB = [255; 0; 0];
+YUV = RGBtoYUV(RGB)
+
+RGB = [255; 0; 0];
+kR = 0.299;
+kG = 0.587;
+kB = 0.114;
+YCbCr = RGBtoYCbCr(RGB, kR, kG, kB)
+
+%% 2.1(b) Funkcja przekształcająca obrazy w formacie RGB do formatu YCbCr.
+% gdzie macierz przekształcenia zdefiniowana jest przez współczynniki [kR, kG, kB], a argumentem wyjściowym macierz obrazu w formacie YCbCr. Przykładowe wartości współczynników to kR = 0.299, kG = 0.587 oraz kB = 0.114).
+
+% Ścieżki w pierwotnym obrazie
+
+Im = imread('obraz.bmp');
+fig = 1;
+fig = show_mono(Im, fig);
+
+% Ścieżki w obrazie
+
+ImYUV = RGBtoYUV(double(Im));
+fig = show_mono(uint8(ImYUV), fig);
+
+% Ścieżki w obrazie YCbCr
+
+ImYCbCr = RGBtoYCbCr(double(Im));
+fig = show_mono(uint8(ImYCbCr), fig);
+
+##### SOURCE END #####
+-->
+</body>
+</html>

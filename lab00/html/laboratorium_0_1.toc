@@ -1,0 +1,9 @@
+\contentsline {section}{1. CEL CWICZENIA}{1}{section*.1}%
+\contentsline {section}{2. MATLAB - KILKA OGOLNYCH ZASAD I PRZYKLADOW}{1}{section*.2}%
+\contentsline {section}{2.1. Generowanie i reprezentacja danych/zmiennych}{1}{section*.3}%
+\contentsline {section}{2.2. Dzialania na macierzach}{2}{section*.4}%
+\contentsline {section}{2.3. Grafika}{2}{section*.5}%
+\contentsline {section}{2.4. Dane obrazowe}{3}{section*.6}%
+\contentsline {section}{2.5. Animacje (tworzenie, odczyt i zapis)}{5}{section*.7}%
+\contentsline {section}{2.6 FUNKCJE}{7}{section*.8}%
+\contentsline {section}{Typowy koniec skryptu}{7}{section*.9}%
