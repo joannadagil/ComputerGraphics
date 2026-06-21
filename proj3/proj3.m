@@ -1,315 +1,772 @@
 %% GRAFIKA KOMPUTEROWA - PROJEKT 3
-%% *Joanna Dagil 231008*
+% *Joanna Dagil 231008*
 %
+clear; close all; clc;
 %
 %% OPIS PROJEKTU
 %
-% Celem projektu bylo zaprojektowanie litery P za pomoca krzywych b-sklejanych 
-% stopnia drugiego oraz wykonanie animacji modyfikujacej jej ksztalt i kolor w czasie.
+% Celem projektu jest wygenerowanie obrazow oraz animacji trzech trojkatow
+% umieszczonych w przestrzeni 3D i rzutowanych rownolegle na plaszczyzne OXY.
+% Trojkaty maja rozne wspolczynniki odbicia w skladowych RGB, dlatego kazdy
+% z nich widoczny jest w innym kolorze. W projekcie nalezy uwzglednic
+% oswietlenie tla, punktowe zrodlo swiatla, spadek natezenia wraz z
+% odlegloscia, wzajemne zaslanianie sie trojkatow oraz rzucanie cieni.
 %
-% Projekt zostal podzielony na dwie czesci:
+% W czesci pierwszej generowane sa dwa statyczne obrazy sceny: pierwszy z
+% wykorzystaniem modelu Lamberta, a drugi z wykorzystaniem modelu Phonga.
+% W czesci drugiej generowane sa dwie animacje, rowniez dla modeli Lamberta
+% i Phonga, w ktorych polozenie trojkatow pozostaje stale, natomiast zrodlo
+% swiatla porusza sie po okregu zgodnie z rownaniami podanymi w tresci
+% projektu.
 %
-% CZESC 1 - Utworzenie statycznego obrazu litery P na czarnym tle.
-% CZESC 2 - Wygenerowanie animacji, w ktorej litera P zmienia swoj ksztalt
-%           oraz jest przedstawiona w kolorze.
-%
-% Litera zostala opisana za pomoca dwoch zamknietych konturow:
-% - zewnetrznego konturu litery,
-% - wewnetrznego konturu odpowiadajacego "dziurze" w literze P.
-%
-% Oba kontury zostaly utworzone na podstawie punktow kontrolnych,
-% a nastepnie aproksymowane krzywymi b-sklejanymi stopnia drugiego.
+% Obraz ma rozdzielczosc 640x480, a pojedynczy piksel odpowiada obszarowi
+% 0.1x0.1 w ukladzie wspolrzednych matematycznych. Wynikiem dzialania kodu
+% sa dwa pliki PNG z obrazami statycznymi oraz dwa pliki AVI z animacjami.
 %
 %% REALIZACJA PROJEKTU
 %
-% Zrealizowane rozwiazanie sklada sie z kilku etapow:
+% Rozwiazanie zostalo przygotowane w Matlabie, w stylu zgodnym z kodem z
+% laboratorium 10. Punkty wierzcholkow trojkatow sa zapisane jako wektory
+% jednorodne, natomiast samo rzutowanie wykonano rownolegle na plaszczyzne
+% OXY. Oznacza to, ze do utworzenia obrazu wykorzystuje sie wspolrzedne x i
+% y punktow, a wspolrzedna z sluzy do rozstrzygania widocznosci.
 %
-% 1. Zdefiniowanie punktow kontrolnych litery P:
-%    Funkcja points(change) zwraca wspolrzedne punktow kontrolnych
-%    konturu zewnetrznego oraz wewnetrznego. Parametr "change"
-%    pozwala modyfikowac ksztalt litery w animacji.
+% Dla kazdego trojkata tworzona jest osobna maska binarna. Najpierw
+% wspolrzedne matematyczne wierzcholkow sa zamieniane na wspolrzedne
+% pikselowe funkcja mat_to_pix. Nastepnie krawedzie trojkata sa rysowane
+% funkcja line, a jego wnetrze wypelniane funkcja floodfill. Dzieki masce
+% wiadomo, ktore piksele obrazu naleza do danego trojkata.
 %
-% 2. Wyznaczenie krzywych b-sklejanych stopnia drugiego:
-%    Funkcje bspline0, bspline1 i bspline2 obliczaja kolejne funkcje
-%    bazowe B-spline. Na ich podstawie funkcja curves(points)
-%    generuje punkty krzywej odpowiadajacej danemu konturowi.
+% Dla kazdego piksela lezacego wewnatrz maski wyznaczany jest odpowiadajacy
+% mu punkt na plaszczyznie trojkata. W tym celu obliczane jest rownanie
+% plaszczyzny Ax+By+Cz+D=0 funkcja plane, a nastepnie punkt przeciecia
+% prostej rownoleglej do osi OZ z ta plaszczyzna funkcja dist_to_plane.
+% Wektor normalny do plaszczyzny jest normalizowany i ustawiany zgodnie z
+% przyjeta konwencja obserwacji.
 %
-% 3. Rasteryzacja konturu:
-%    Funkcja drawCurve rysuje kolejne punkty krzywej na obrazie
-%    monochromatycznym.
+% W modelu Lamberta jasnosc punktu zalezy od kata pomiedzy normalna do
+% powierzchni a wektorem skierowanym do zrodla swiatla. Uzywana jest tylko
+% skladowa rozproszona, dlatego powierzchnie maja wyglad matowy. Natezenie
+% swiatla punktowego jest dodatkowo tlumione wraz z odlegloscia zgodnie ze
+% wzorem podanym w tresci zadania. Otrzymane natezenie RGB jest mnozone
+% przez kolor bazowy danego trojkata.
 %
-% 4. Wypelnienie wnetrza litery:
-%    Funkcja floodfill wypelnia obszar ograniczony konturem.
-%    Punkt startowy wybierany jest wewnatrz nogi litery P.
+% W modelu Phonga do skladowej rozproszonej dodawany jest efekt odbicia
+% zwierciadlanego. Dla kazdego punktu obliczany jest wektor odbicia swiatla
+% oraz wektor prowadzacy od punktu do oka obserwatora. Iloczyn skalarny tych
+% wektorow, podniesiony do potegi m=15, odpowiada za widoczne rozblyski.
+% Dzieki temu obraz z modelem Phonga powinien miec bardziej punktowe,
+% blyszczace fragmenty niz obraz z modelem Lamberta.
 %
-% 5. Zapis wyniku statycznego:
-%    Obraz z pierwszej czesci projektu zapisywany jest do pliku
-%    "czesc1.png".
+% Cienie obliczane sa przez sprawdzenie, czy odcinek laczacy dany punkt
+% trojkata ze zrodlem swiatla przecina inny trojkat. Jezeli przeciecie lezy
+% pomiedzy punktem a lampa oraz znajduje sie wewnatrz maski drugiego
+% trojkata, punkt uznawany jest za zacieniony i pozostaje oswietlony tylko
+% skladowa tla.
 %
-% 6. Generowanie animacji:
-%    W drugiej czesci dla kolejnych klatek zmieniany jest parametr
-%    "change", co powoduje deformacje litery. Dodatkowo wynik jest
-%    zapisywany jako obraz RGB, co pozwala uzyskac kolorowa animacje.
-%    Kolejne klatki sa zapisywane do pliku AVI za pomoca VideoWriter.
+% Widocznosc trojkatow jest rozstrzygana za pomoca z-bufora. Dla kazdego
+% piksela porownywana jest odleglosc do plaszczyzn wszystkich trojkatow,
+% ktorych maski obejmuja ten piksel. Do obrazu wynikowego trafia kolor tego
+% trojkata, ktory znajduje sie najblizej kamery w przyjetym rzucie
+% rownoleglym. Pozwala to poprawnie uwzglednic przecinanie i wzajemne
+% zaslanianie trojkatow.
 %
+% W czesci animacyjnej geometria trojkatow jest stala, dlatego parametry ich
+% plaszczyzn sa wyznaczane raz przed petla animacji. W kazdej klatce zmienia
+% sie tylko polozenie zrodla swiatla: x(tk)=-5cos(tk), y(tk)=-5+5sin(tk),
+% z(tk)=-28, gdzie tk=0.0315*k. Dla kazdej klatki ponownie wyznaczane sa
+% oswietlenie, cienie i z-buffer, a gotowa klatka zapisywana jest do pliku
+% AVI funkcja VideoWriter. Zeby ograniczyc niepotrzebne powtarzanie obliczen,
+% stale elementy sceny, takie jak wspolrzedne trojkatow i rownania ich
+% plaszczyzn, nie sa wyznaczane od nowa tam, gdzie nie jest to potrzebne.
 %
 %% UZYSKANE WYNIKI
 %
-% Wynikiem projektu sa:
+% Program zapisuje cztery glowne wyniki:
 %
-% W CZESCI 1 statyczny obraz litery P na obrazie o rozdzielczosci 640x480.
-% Litera jest wypelniona i umieszczona centralnie.
+% 1. proj3_lambert.png - statyczny obraz sceny w modelu Lamberta,
+% 2. proj3_phong.png   - statyczny obraz sceny w modelu Phonga,
+% 3. proj3_lambert.avi - animacja sceny z ruchomym zrodlem swiatla w modelu Lamberta,
+% 4. proj3_phong.avi   - animacja sceny z ruchomym zrodlem swiatla w modelu Phonga.
 %
-% W CZESCI 2 animacja zmieniającego sie ksztaltu litery w kolejnych kratkach, 
-% deformacja dotyczy szerokosci "pionowych" części litery - 
-% tak jakby ktoś pisał stalówka o różnej grubości
+% Na obrazie Lamberta powierzchnie trojkatow sa oswietlone w sposob
+% rozproszony. Widoczne sa roznice jasnosci wynikajace z polozenia zrodla
+% swiatla, orientacji powierzchni oraz tlumienia natezenia wraz z odlegloscia.
+% Model ten nie tworzy wyraznych blyskow, dlatego efekt jest bardziej matowy.
 %
-% W trakcie realizacji pojawily sie problemy zwiazane z:
-% - generowaniem niepoprawnych punktow krzywej w poblizu (0,0),
-% - doborem punktu startowego dla floodfill,
-% - zbytniego zbliżnia sie ruchomych punktów litery do stacjonarnych punktów
+% Na obrazie Phonga pojawia sie dodatkowa skladowa zwierciadlana zalezna od
+% polozenia oka obserwatora i parametru m. Powoduje to powstanie jasniejszych
+% fragmentow w miejscach, w ktorych kierunek odbicia swiatla jest zblizony do
+% kierunku obserwacji.
 %
-% Problemy te zostaly rozwiazane przez:
-% - normalizacje wag funkcji bazowych w funkcji curves,
-% - dobor punktu startowego lezacego wewnatrz nogi litery,
-% - zmniejszenie zmiany litery i przeniesienie nieruchomych punktów dalej od ruchomych.
-%
+% W animacjach trojkaty pozostaja nieruchome, natomiast zrodlo swiatla
+% porusza sie po okregu. W kolejnych klatkach zmieniaja sie jasnosci
+% powierzchni oraz polozenia obszarow zacienionych. Animacja Lamberta
+% pokazuje zmiane oswietlenia rozproszonego, a animacja Phonga dodatkowo
+% pokazuje przemieszczanie sie refleksow zwierciadlanych.
 %
 %% INSTRUKCJA URUCHOMIENIA
 %
-% 1. Umiescic plik skryptu w katalogu roboczym MATLAB-a.
-% 2. Uruchomic skrypt.
-% 3. W wyniku dzialania programu zostana utworzone:
-%    - obraz "czesc1.png",
-%    - animacja "czesc2.avi".
+% 1. Otworzyc Matlab i ustawic jako Current Folder katalog zawierajacy plik
+%    proj3.m.
+% 2. Uruchomic skrypt poleceniem:
 %
-%% CZESC 1
+%       run('proj3.m')
 %
-% Projekt literę P o dość typowym kształcie za pomocą krzywych b-sklejanych stopnia drugiego.
-% Litera powinna być umieszczona centralnie, a jej rozmiar ma wynosić ok. 200x300 pixeli (jak na obrazie P640.bmp).
+%    albo nacisnac przycisk Run w edytorze Matlaba.
+% 3. Program wygeneruje dwa okna z obrazami statycznymi oraz dwa pliki AVI
+%    z animacjami. Pliki PNG i AVI zostana zapisane w aktualnym katalogu
+%    roboczym Matlaba.
+% 4. Pelna wersja animacji ma 200 klatek. Aby przygotowac krotki wariant
+%    kontrolny wymagany do oceny, nalezy w czesci animacyjnej zmienic:
+%       frames = 200;
+%    na:
+%       frames = 20;
+%
+% 5. Obliczenia moga trwac kilka minut, poniewaz oswietlenie, cienie i
+%    z-buffer sa liczone piksel po pikselu dla kazdej klatki animacji.
+%
+%
+%% OPIS PROBLEMU
+%
+% Dane sa trzy trojkaty A, B i C o współrzędnych:
 
-clear; close all; clc;
+% Trojkat A (zapisane od razu we wspolrzednych jednorodnych)
+tri(1).A = [ -22;   0;  58; 1]; 
+tri(1).B = [  11;  19;  58; 1];
+tri(1).C = [   0;   0;  26; 1];
 
-% Obraz otrzymany z kamery ma rozdzielczosc 
+% Trojkat B
+tri(2).A = [ -22;   0;  58; 1]; 
+tri(2).B = [  11; -19;  58; 1];
+tri(2).C = [   0;   0;  26; 1];
+
+% Trojkat C
+tri(3).A = [   3;  19;  48; 1]; 
+tri(3).B = [   3; -19;  48; 1];
+tri(3).C = [  -8;   0;  16; 1];
+
+% Trójkąty są wizualizowane na obrazach/animacjach uzyskanych przez rzutowanie równoległe
+% na płaszczyznę OXY. Każdy z trójkątów w inny sposób odbija oświetlenie kolorami bazowymi
+% RGB (czyli ma efektywnie inny kolor):
+tri(1).color = [1, 0.5, 0.25]; 
+tri(2).color = [0.25, 1, 0.5];
+tri(3).color = [0.25, 0.5, 1];
+
+% Obraz otrzymany z kamery ma miec rozdzielczosc 
 X = 640;
 Y = 480;
 
-% Tlo ma kolor czarny
-Im = uint8(zeros(Y, X));
+% A rozmiar pixela to 
+dx = 0.1;
+dy = 0.1;
 
-
-% Punkty kontrolne litery
-[outer_points, inner_points] = points(0);
-
-outer_curve = curves(outer_points);
-inner_curve = curves(inner_points);
-
-Im = drawCurve(Im, outer_curve, 255);
-Im = drawCurve(Im, inner_curve, 255);
-y_mid = round((outer_points(18,2) + outer_points(8,2))/2); 
-x_mid = round((outer_points(18,1) + outer_points(8,1))/2); 
-Im = floodfill(Im, y_mid, x_mid, 0, 255);
-
-imwrite(Im, 'czesc1.png');
-
-figure(1);imshow(Im);
-title('Litera P z dwoch krzywych b-sklejanych stopnia drugiego');
-
-
-%% CZESC 2
 %
-% Kolorowa animacja modyfikująca wygląd litery P z pierwszej części.
+%% CZESC 1
 %
+% Trójkąty oświetlone są dość ciemnym światłem tła o natężeniu:
+Iamb = [100,100,100];
+%oraz punktowym źródłem bardzo jasnego światła o natężeniu i polozeniu:
+Imax = [1000,1000,1000];
+pmax = [ -5; -5; -28];
+% Spadek natężenia oświetlenia w zależności od odległości opisany jest wzorem:
+% Imax / (1 + 0.001 * ||p - pmax ||^2)
 
-video = VideoWriter('czesc2.avi');
-video.FrameRate = 20;
-open(video);
+% Wygeneruj dwa obrazy przedstawiające te trójkąty:
+%
+% 1. Używając modelu oświetlenia Lamberta.
+%
+% 2. Używając modelu oświetlenia Phonga. 
+% „Oko obserwatora” umieszczamy w punkcie
+eye = [10; 5; 40];
+% a współczynnik m równa się 15 (można również próbować innych wartości).
+m = 15;
+% W obrazach powinny być uwzględnione (jeśli występują) przecinania trójkątów 
+% i ich wzajemne rzucanie cieni.
 
-frames = 200;
-for frame = 1:frames
+% Wspolczynnik odbicia, jak w lab10.
+e = 1;
 
-    Im = uint8(zeros(Y, X));
 
-    change = 25*sin(10*pi*(frame-1)/frames);
 
-    [outer_points, inner_points] = points(change);
+%% CZESC 1.1 - MODEL LAMBERTA
 
-    outer_curve = curves(outer_points);
-    inner_curve = curves(inner_points);
+Im1 = uint8(zeros(Y,X,3));
+Im2 = uint8(zeros(Y,X,3));
+Im3 = uint8(zeros(Y,X,3));
 
-    Im = drawCurve(Im, outer_curve, 1);
-    Im = drawCurve(Im, inner_curve, 1);
+[Im1, Ish1] = lambert(Im1, tri(1), Iamb, pmax, Imax, X, Y, dx, dy);
+[Im2, Ish2] = lambert(Im2, tri(2), Iamb, pmax, Imax, X, Y, dx, dy);
+[Im3, Ish3] = lambert(Im3, tri(3), Iamb, pmax, Imax, X, Y, dx, dy);
 
-    R = 222; G = 184; B = 135;
-    Im3D = uint8(zeros(Y, X, 3));
-    Im3D(:,:,1) = floodfill(Im * R, 300, 250, 0, R);
-    Im3D(:,:,2) = floodfill(Im * G, 300, 250, 0, G);
-    Im3D(:,:,3) = floodfill(Im * B, 300, 250, 0, B);
-
-    writeVideo(video, Im3D);
+% Cienie
+[A1, B1, C1, D1] = plane(tri(1).A, tri(1).B, tri(1).C);
+n1 = [A1; B1; C1] / norm([A1; B1; C1]);
+if n1(3) > 0
+    n1 = -1 * n1;
 end
 
-close(video);
+[A2, B2, C2, D2] = plane(tri(2).A, tri(2).B, tri(2).C);
+n2 = [A2; B2; C2] / norm([A2; B2; C2]);
+if n2(3) > 0
+    n2 = -1 * n2;
+end
+
+[A3, B3, C3, D3] = plane(tri(3).A, tri(3).B, tri(3).C);
+n3 = [A3; B3; C3] / norm([A3; B3; C3]);
+if n3(3) > 0
+    n3 = -1 * n3;
+end
+
+Im1 = shadow(Im1, Ish1, Ish2, A1, B1, C1, D1, A2, B2, C2, D2, X, Y, dx, dy, pmax, Iamb, tri(1).color);
+Im1 = shadow(Im1, Ish1, Ish3, A1, B1, C1, D1, A3, B3, C3, D3, X, Y, dx, dy, pmax, Iamb, tri(1).color);
+
+Im2 = shadow(Im2, Ish2, Ish1, A2, B2, C2, D2, A1, B1, C1, D1, X, Y, dx, dy, pmax, Iamb, tri(2).color);
+Im2 = shadow(Im2, Ish2, Ish3, A2, B2, C2, D2, A3, B3, C3, D3, X, Y, dx, dy, pmax, Iamb, tri(2).color);
+
+Im3 = shadow(Im3, Ish3, Ish1, A3, B3, C3, D3, A1, B1, C1, D1, X, Y, dx, dy, pmax, Iamb, tri(3).color);
+Im3 = shadow(Im3, Ish3, Ish2, A3, B3, C3, D3, A2, B2, C2, D2, X, Y, dx, dy, pmax, Iamb, tri(3).color);
+
+% Z-buffer
+
+Im = uint8(zeros(Y,X,3));
+z_buffer = inf(Y,X);
+
+for j = 1:Y
+    for i = 1:X
+        [xx,yy] = pix_to_mat(i, j, X, Y, dx, dy);
+        if Ish1(j,i) == 255
+            [d,~,~,~] = dist_to_plane([A1, B1, C1, D1], xx, yy, 0, 0, 0, 1);
+            if d < z_buffer(j, i)
+                z_buffer(j, i) = d;
+                Im(j, i, :) = Im1(j, i, :);
+            end
+        end
+        if Ish2(j,i) == 255
+            [d,~,~,~] = dist_to_plane([A2, B2, C2, D2], xx, yy, 0, 0, 0, 1);
+            if d < z_buffer(j, i)
+                z_buffer(j, i) = d;
+                Im(j, i, :) = Im2(j, i, :);
+            end
+        end
+        if Ish3(j,i) == 255
+            [d,~,~,~] = dist_to_plane([A3, B3, C3, D3], xx, yy, 0, 0, 0, 1);
+            if d < z_buffer(j, i)
+                z_buffer(j, i) = d;
+                Im(j, i, :) = Im3(j, i, :);
+            end
+        end
+    end
+end
+
+figure(1); imshow(Im); title('Model Lamberta');
+imwrite(Im, 'proj3_lambert.png');
+
+
+
+%% CZESC 1.2 - MODEL PHONGA
+
+Im1 = uint8(zeros(Y,X,3));
+Im2 = uint8(zeros(Y,X,3));
+Im3 = uint8(zeros(Y,X,3));
+
+[Im1, Ish1] = phong(Im1, tri(1), Iamb, pmax, Imax, X, Y, dx, dy, e, eye, m);
+[Im2, Ish2] = phong(Im2, tri(2), Iamb, pmax, Imax, X, Y, dx, dy, e, eye, m);
+[Im3, Ish3] = phong(Im3, tri(3), Iamb, pmax, Imax, X, Y, dx, dy, e, eye, m);
+
+% Cienie
+[A1, B1, C1, D1] = plane(tri(1).A, tri(1).B, tri(1).C);
+n1 = [A1; B1; C1] / norm([A1; B1; C1]);
+if n1(3) > 0
+    n1 = -1 * n1;
+end
+
+[A2, B2, C2, D2] = plane(tri(2).A, tri(2).B, tri(2).C);
+n2 = [A2; B2; C2] / norm([A2; B2; C2]);
+if n2(3) > 0
+    n2 = -1 * n2;
+end
+
+[A3, B3, C3, D3] = plane(tri(3).A, tri(3).B, tri(3).C);
+n3 = [A3; B3; C3] / norm([A3; B3; C3]);
+if n3(3) > 0
+    n3 = -1 * n3;
+end
+
+Im1 = shadow(Im1, Ish1, Ish2, A1, B1, C1, D1, A2, B2, C2, D2, X, Y, dx, dy, pmax, Iamb, tri(1).color);
+Im1 = shadow(Im1, Ish1, Ish3, A1, B1, C1, D1, A3, B3, C3, D3, X, Y, dx, dy, pmax, Iamb, tri(1).color);
+
+Im2 = shadow(Im2, Ish2, Ish1, A2, B2, C2, D2, A1, B1, C1, D1, X, Y, dx, dy, pmax, Iamb, tri(2).color);
+Im2 = shadow(Im2, Ish2, Ish3, A2, B2, C2, D2, A3, B3, C3, D3, X, Y, dx, dy, pmax, Iamb, tri(2).color);
+
+Im3 = shadow(Im3, Ish3, Ish1, A3, B3, C3, D3, A1, B1, C1, D1, X, Y, dx, dy, pmax, Iamb, tri(3).color);
+Im3 = shadow(Im3, Ish3, Ish2, A3, B3, C3, D3, A2, B2, C2, D2, X, Y, dx, dy, pmax, Iamb, tri(3).color);
+
+% Z-buffer
+
+Im = uint8(zeros(Y,X,3));
+z_buffer = inf(Y,X);
+
+for j = 1:Y
+    for i = 1:X
+        [xx,yy] = pix_to_mat(i, j, X, Y, dx, dy);
+        if Ish1(j,i) == 255
+            [d,~,~,~] = dist_to_plane([A1, B1, C1, D1], xx, yy, 0, 0, 0, 1);
+            if d < z_buffer(j, i)
+                z_buffer(j, i) = d;
+                Im(j, i, :) = Im1(j, i, :);
+            end
+        end
+        if Ish2(j,i) == 255
+            [d,~,~,~] = dist_to_plane([A2, B2, C2, D2], xx, yy, 0, 0, 0, 1);
+            if d < z_buffer(j, i)
+                z_buffer(j, i) = d;
+                Im(j, i, :) = Im2(j, i, :);
+            end
+        end
+        if Ish3(j,i) == 255
+            [d,~,~,~] = dist_to_plane([A3, B3, C3, D3], xx, yy, 0, 0, 0, 1);
+            if d < z_buffer(j, i)
+                z_buffer(j, i) = d;
+                Im(j, i, :) = Im3(j, i, :);
+            end
+        end
+    end
+end
+
+figure(2); imshow(Im); title('Model Phonga');
+imwrite(Im, 'proj3_phong.png');
+
+
+%
+%% CZESC 2
+%
+% Używając tych samych parametrów oświetlenia jak w Części I, wygeneruj dwie krótkie 
+% (ale nie mniej niż 200 klatek) cyfrową animację przedstawiającą konfigurację 
+% tych trójkątów oświetlaną ruchomym źródłem światła .
+% Źródło światła porusza się po okręgu o (zdyskretyzowanym) parametrycznym równaniu:
+% x(tk) = -5cos(tk)
+% y(tk) = -5 + 5sin(tk)
+% z(tk) = -28
+% gdzie tk = 0.0315k (k jest numerem klatki)
+%
+% 1. W pierwszej animacji użyj modelu oświetlenia Lamberta
+%
+% 2. W drugiej animacji użyj modelu oświetlenia Phonga (parametry jak w Części I).
+%
+% UWAGA: W powyższym równaniu parametr tk podany jest w radianach!
+%
+%% CZESC 2.1 - ANIMACJA, MODEL LAMBERTA
+
+frames = 200;
+
+v1 = VideoWriter('proj3_lambert.avi');
+v1.FrameRate = 20;
+open(v1);
+
+% Parametry plaszczyzn trojkatow sa stale, bo trojkaty sie nie ruszaja.
+[A1, B1, C1, D1] = plane(tri(1).A, tri(1).B, tri(1).C);
+[A2, B2, C2, D2] = plane(tri(2).A, tri(2).B, tri(2).C);
+[A3, B3, C3, D3] = plane(tri(3).A, tri(3).B, tri(3).C);
+
+for k = 0:frames-1
+    fprintf('Generowanie klatki Lamberta %d/%d...\n', k+1, frames);
+
+    tk = 0.0315 * k;
+    lamp = [-5*cos(tk); -5 + 5*sin(tk); -28];
+
+    Im1 = uint8(zeros(Y,X,3));
+    Im2 = uint8(zeros(Y,X,3));
+    Im3 = uint8(zeros(Y,X,3));
+
+    [Im1, Ish1] = lambert(Im1, tri(1), Iamb, lamp, Imax, X, Y, dx, dy);
+    [Im2, Ish2] = lambert(Im2, tri(2), Iamb, lamp, Imax, X, Y, dx, dy);
+    [Im3, Ish3] = lambert(Im3, tri(3), Iamb, lamp, Imax, X, Y, dx, dy);
+
+    % Cienie
+    Im1 = shadow(Im1, Ish1, Ish2, A1, B1, C1, D1, A2, B2, C2, D2, X, Y, dx, dy, lamp, Iamb, tri(1).color);
+    Im1 = shadow(Im1, Ish1, Ish3, A1, B1, C1, D1, A3, B3, C3, D3, X, Y, dx, dy, lamp, Iamb, tri(1).color);
+
+    Im2 = shadow(Im2, Ish2, Ish1, A2, B2, C2, D2, A1, B1, C1, D1, X, Y, dx, dy, lamp, Iamb, tri(2).color);
+    Im2 = shadow(Im2, Ish2, Ish3, A2, B2, C2, D2, A3, B3, C3, D3, X, Y, dx, dy, lamp, Iamb, tri(2).color);
+
+    Im3 = shadow(Im3, Ish3, Ish1, A3, B3, C3, D3, A1, B1, C1, D1, X, Y, dx, dy, lamp, Iamb, tri(3).color);
+    Im3 = shadow(Im3, Ish3, Ish2, A3, B3, C3, D3, A2, B2, C2, D2, X, Y, dx, dy, lamp, Iamb, tri(3).color);
+
+    % Z-buffer
+    Im = uint8(zeros(Y,X,3));
+    z_buffer = inf(Y,X);
+
+    for j = 1:Y
+        for i = 1:X
+            [xx,yy] = pix_to_mat(i, j, X, Y, dx, dy);
+
+            if Ish1(j,i) == 255
+                [d,~,~,~] = dist_to_plane([A1, B1, C1, D1], xx, yy, 0, 0, 0, 1);
+                if d < z_buffer(j, i)
+                    z_buffer(j, i) = d;
+                    Im(j, i, :) = Im1(j, i, :);
+                end
+            end
+
+            if Ish2(j,i) == 255
+                [d,~,~,~] = dist_to_plane([A2, B2, C2, D2], xx, yy, 0, 0, 0, 1);
+                if d < z_buffer(j, i)
+                    z_buffer(j, i) = d;
+                    Im(j, i, :) = Im2(j, i, :);
+                end
+            end
+
+            if Ish3(j,i) == 255
+                [d,~,~,~] = dist_to_plane([A3, B3, C3, D3], xx, yy, 0, 0, 0, 1);
+                if d < z_buffer(j, i)
+                    z_buffer(j, i) = d;
+                    Im(j, i, :) = Im3(j, i, :);
+                end
+            end
+        end
+    end
+
+    figure(3);
+    imshow(Im);
+    title('Animacja - model Lamberta');
+    drawnow;
+
+    frame = getframe(gcf);
+    writeVideo(v1, frame);
+end
+
+close(v1);
+
+
+
+%% CZESC 2.2 - ANIMACJA, MODEL PHONGA
+
+v2 = VideoWriter('proj3_phong.avi');
+v2.FrameRate = 20;
+open(v2);
+
+for k = 0:frames-1
+    fprintf('Generowanie klatki Phonga %d/%d...\n', k+1, frames);
+
+    tk = 0.0315 * k;
+    lamp = [-5*cos(tk); -5 + 5*sin(tk); -28];
+
+    Im1 = uint8(zeros(Y,X,3));
+    Im2 = uint8(zeros(Y,X,3));
+    Im3 = uint8(zeros(Y,X,3));
+
+    [Im1, Ish1] = phong(Im1, tri(1), Iamb, lamp, Imax, X, Y, dx, dy, e, eye, m);
+    [Im2, Ish2] = phong(Im2, tri(2), Iamb, lamp, Imax, X, Y, dx, dy, e, eye, m);
+    [Im3, Ish3] = phong(Im3, tri(3), Iamb, lamp, Imax, X, Y, dx, dy, e, eye, m);
+
+    % Cienie
+    Im1 = shadow(Im1, Ish1, Ish2, A1, B1, C1, D1, A2, B2, C2, D2, X, Y, dx, dy, lamp, Iamb, tri(1).color);
+    Im1 = shadow(Im1, Ish1, Ish3, A1, B1, C1, D1, A3, B3, C3, D3, X, Y, dx, dy, lamp, Iamb, tri(1).color);
+
+    Im2 = shadow(Im2, Ish2, Ish1, A2, B2, C2, D2, A1, B1, C1, D1, X, Y, dx, dy, lamp, Iamb, tri(2).color);
+    Im2 = shadow(Im2, Ish2, Ish3, A2, B2, C2, D2, A3, B3, C3, D3, X, Y, dx, dy, lamp, Iamb, tri(2).color);
+
+    Im3 = shadow(Im3, Ish3, Ish1, A3, B3, C3, D3, A1, B1, C1, D1, X, Y, dx, dy, lamp, Iamb, tri(3).color);
+    Im3 = shadow(Im3, Ish3, Ish2, A3, B3, C3, D3, A2, B2, C2, D2, X, Y, dx, dy, lamp, Iamb, tri(3).color);
+
+    % Z-buffer
+    Im = uint8(zeros(Y,X,3));
+    z_buffer = inf(Y,X);
+
+    for j = 1:Y
+        for i = 1:X
+            [xx,yy] = pix_to_mat(i, j, X, Y, dx, dy);
+
+            if Ish1(j,i) == 255
+                [d,~,~,~] = dist_to_plane([A1, B1, C1, D1], xx, yy, 0, 0, 0, 1);
+                if d < z_buffer(j, i)
+                    z_buffer(j, i) = d;
+                    Im(j, i, :) = Im1(j, i, :);
+                end
+            end
+
+            if Ish2(j,i) == 255
+                [d,~,~,~] = dist_to_plane([A2, B2, C2, D2], xx, yy, 0, 0, 0, 1);
+                if d < z_buffer(j, i)
+                    z_buffer(j, i) = d;
+                    Im(j, i, :) = Im2(j, i, :);
+                end
+            end
+
+            if Ish3(j,i) == 255
+                [d,~,~,~] = dist_to_plane([A3, B3, C3, D3], xx, yy, 0, 0, 0, 1);
+                if d < z_buffer(j, i)
+                    z_buffer(j, i) = d;
+                    Im(j, i, :) = Im3(j, i, :);
+                end
+            end
+        end
+    end
+
+    figure(4);
+    imshow(Im);
+    title('Animacja - model Phonga');
+    drawnow;
+
+    frame = getframe(gcf);
+    writeVideo(v2, frame);
+end
+
+close(v2);
+
+
+
 
 
 
 
 %% FUNKCJE POMOCNICZE
-%
-%% FUNKCJE B-SPLINE KOLEJNYCH STOPNI
-%
-% T - wektor wspolrzednych M+1 wezlow pomiedzy 0 i 1 (T(1) = 0 i T(M+1) = 1)
-% t - N-elementowy wektor reprezentujacy odcinek <0;1>, np. z krokiem 0.001
-% poly0 tablica dyskretnej reprezentacja M "wielomianow" stopnia 0 
-% wektorami o dlugosci takiej samej jak wektor t 
-% kolejne kolumny poly0 reprezentuja kolejne "wielomiany" stopnia 0
-function poly0 = bspline0(T,t,M)
-    N = numel(t);
-    poly0 = zeros(N,M);
-    for j = 1:M
-        for i = 1:N
-            poly0(i,j) = (t(i)>=T(j) && t(i)<T(j+1));
+
+%% SHADOW
+
+function Im = shadow(Im,Ish1,Ish2,A1,B1,C1,D1,A2,B2,C2,D2,X,Y,dx,dy,lamp,amb,color)
+    for i = 1:X
+        for j = 1:Y
+            if Ish1(j,i)==255
+                % sprawdzanie rzucania cienia
+                [xx,yy] = pix_to_mat(i,j,X,Y,dx,dy);
+                [~, x, y, z] = dist_to_plane([A1, B1, C1, D1],xx,yy,0,0,0,1);
+                l1 = lamp-[x;y;z];
+                dist1 = norm(l1);
+                [d2, x2, y2, z2] = dist_to_plane([A2, B2, C2, D2],x,y,z,l1(1),l1(2),l1(3));
+                if norm([x2;y2;z2]-lamp)<dist1 && d2<dist1
+                    [i2, j2] = mat_to_pix(x2,y2,X,Y,dx,dy);
+                    if i2>0 && j2>0 && i2<X+1 && j2<Y+1 && Ish2(j2,i2)==255
+                        RGB = color .* amb;
+                        RGB = min(max(RGB, 0), 255);
+                        Im(j,i,:) = reshape(uint8(RGB), 1, 1, 3);
+                    end
+                end
+            end
         end
     end
 end
 
-% j.w. stopnia 1 i 2.
+%% LAMBERT
 
-function poly1 = bspline1(T,t,M,poly0)
-    N = numel(t);
-    poly1 = zeros(N,M-1);
-    for j=1:M-1
-        A = T(j+1)-T(j);
-        B = T(j+2)-T(j+1);
-        for i=1:N
-            poly1(i,j) = (t(i)-T(j))*poly0(i,j)/A + (T(j+2)-t(i))*poly0(i,j+1)/B;
+function [Im, Ish] = lambert(Im, triangle, amb, lamp, int, X, Y, dx, dy)
+    Ish = uint8(zeros(Y,X)); % pomocniczy obraz zawierający biały trójkąt
+
+    [i1,j1] = mat_to_pix(triangle.A(1), triangle.A(2), X, Y, dx, dy);
+    [i2,j2] = mat_to_pix(triangle.B(1), triangle.B(2), X, Y, dx, dy);
+    [i3,j3] = mat_to_pix(triangle.C(1), triangle.C(2), X, Y, dx, dy);
+
+    Ish = line(Ish, j1, i1, j2, i2, dx, dy, 255);
+    Ish = line(Ish, j2, i2, j3, i3, dx, dy, 255);
+    Ish = line(Ish, j3, i3, j1, i1, dx, dy, 255);
+
+    Ish = floodfill(Ish, round((j1+j2+j3)/3), round((i1+i2+i3)/3), 0, 255); % wypełnienie trójkąta białym kolorem
+
+
+    [A, B, C, D] = plane(triangle.A, triangle.B, triangle.C); % Wyznaczenie parametrów płaszczyzny trójkąta
+    n = [A; B; C] / norm([A; B; C]); % Normalizacja wektora normalnego
+    if n(3) > 0 
+        n = -1*n; 
+    end % Obrócenie normalnej, jeśli jest skierowana w dół
+
+    for i = 1:X
+        for j = 1:Y
+            if Ish(j,i) == 255 % Sprawdzenie, czy piksel jest wewnątrz trójkąta
+                [xx,yy] = pix_to_mat(i, j, X, Y, dx, dy); % Zamiana współrzędnych pikselowych na matematyczne
+                [~, x, y, z] = dist_to_plane([A,B,C,D], xx, yy, 0, 0, 0, 1); % Wyznaczenie punktu na płaszczyźnie trójkąta
+                l = lamp - [x; y; z]; % Wektor od punktu na trójkącie do lampy
+                dist = norm(l); % Odległość od lampy
+                l = l / dist; % Normalizacja wektora l
+                cs = n'* l; 
+                if cs < 0 
+                    cs = 0; 
+                end % Obliczenie cosinusa kąta między normalną a wektorem do lampy
+                temp = amb + int * cs / (1 + 0.001 * dist^2); % Obliczenie natężenia oświetlenia z uwzględnieniem tłumienia
+                RGB = triangle.color .* temp;
+                RGB = min(max(RGB, 0), 255);
+                Im(j, i, :) = reshape(uint8(RGB), 1, 1, 3); % Ustawienie koloru dla pikseli wewnątrz trójkąta
+            end
         end
     end
 end
 
-function poly2 = bspline2(T,t,M,poly1)
-    N = numel(t);
-    poly2 = zeros(N,M-2);
-    for j=1:M-2
-        A = T(j+2)-T(j);
-        B = T(j+3)-T(j+1);
-        for i=1:N
-            poly2(i,j) = (t(i)-T(j))*poly1(i,j)/A + (T(j+3)-t(i))*poly1(i,j+1)/B;
+
+%% PHONG
+
+function [Im, Ish] = phong(Im, triangle, amb, lamp, int, X, Y, dx, dy, e, eye, m)
+    Ish = uint8(zeros(Y,X)); % pomocniczy obraz zawierający biały trójkąt
+
+    [i1,j1] = mat_to_pix(triangle.A(1), triangle.A(2), X, Y, dx, dy);
+    [i2,j2] = mat_to_pix(triangle.B(1), triangle.B(2), X, Y, dx, dy);
+    [i3,j3] = mat_to_pix(triangle.C(1), triangle.C(2), X, Y, dx, dy);
+
+    Ish = line(Ish, j1, i1, j2, i2, dx, dy, 255);
+    Ish = line(Ish, j2, i2, j3, i3, dx, dy, 255);
+    Ish = line(Ish, j3, i3, j1, i1, dx, dy, 255);
+
+    Ish = floodfill(Ish, round((j1+j2+j3)/3), round((i1+i2+i3)/3), 0, 255); % wypełnienie trójkąta białym kolorem
+    
+    [A, B, C, D] = plane(triangle.A, triangle.B, triangle.C); % Wyznaczenie parametrów płaszczyzny trójkąta
+    n = [A; B; C] / norm([A; B; C]); % Normalizacja wektora normalnego
+    if n(3) > 0 
+        n = -1*n; 
+    end % Obrócenie normalnej, jeśli jest skierowana w dół
+
+    for i = 1:X
+        for j = 1:Y
+            if Ish(j,i) == 255 % Sprawdzenie, czy piksel jest wewnątrz trójkąta
+                [xx,yy] = pix_to_mat(i, j, X, Y, dx, dy); % Zamiana współrzędnych pikselowych na matematyczne
+                [~, x, y, z] = dist_to_plane([A,B,C,D], xx, yy, 0, 0, 0, 1); % Wyznaczenie punktu na płaszczyźnie trójkąta
+                l = lamp - [x; y; z]; % Wektor od punktu na trójkącie do lampy
+                dist = norm(l); % Odległość od lampy
+                l = l / dist; % Normalizacja wektora l
+                cs = n'* l; 
+                if cs < 0 
+                    cs = 0; 
+                end % Obliczenie cosinusa kąta między normalną a wektorem do lampy
+                
+                rp = 2 * (n'* l) * n - l; % Wektor odbicia
+                rp = rp / norm(rp); % Normalizacja wektora odbicia
+                vp = eye - [x; y; z]; % Wektor od punktu na trójkącie do oka
+                vp = vp / norm(vp); % Normalizacja wektora do oka
+                cs2 = rp'* vp; 
+                if cs2 < 0 
+                    cs2 = 0; 
+                end % Obliczenie cosinusa kąta między wektorem odbicia a wektorem do oka
+                
+                temp = amb + int * cs * e * (1 + (cs2^m)) / (1 + 0.001 * dist^2); % Obliczenie natężenia oświetlenia z uwzględnieniem tłumienia
+                RGB = triangle.color .* temp;
+                RGB = min(max(RGB, 0), 255);
+                Im(j, i, :) = reshape(uint8(RGB), 1, 1, 3); % Ustawienie koloru dla pikseli wewnątrz trójkąta
+            end
         end
     end
 end
 
-%% Funkcja gererujaca punkty kontrolne
-function [outer, inner] = points(change)
-% Litera jest zaprojektowana jako dwie zamkniete krzywe b-sklejane:
-% - outer opisuje zewnetrzny kontur litery,
-% - inner opisuje wewnetrzna dziure brzuszka litery P.  
-    outer = [
-        200 - change, 400; % 1 bottom left
-        200 - change, 400; % 2 bottom left
-        200 - change, 340; % 3
-        200 - change, 285; % 4
-        200 - change, 240; % 5
-        200 - change, 190; % 6
-        200 - change, 115; % 7
-        200 - change, 80; % 8 top left
-        200 - change, 80; % 9 top left
-        300, 80; % 10
-        430 + 2*change, 80; % 11
-        500 + 2*change, 145; % 12
-        500 + 2*change, 215; % 13
-        430 + 2*change, 270; % 14
-        330, 270; % 15 
-        300, 270; % 16 mid inflection
-        300, 270; % 17 mid inflection
-        300, 400; % 18 bottom right
-        300, 400; % 19 bottom right
-        200 - change, 400  % 20 bottom left
-    ];
 
-    inner = [
-        300, 210; % 1 bottom left
-        300, 210; % 2 bottom left
-        300, 140; % 3 top left
-        300, 140; % 4 top left
-        320, 140; % 5
-        370 + change, 140; % 6
-        400 + change, 160; % 7
-        400 + change, 190; % 8
-        370 + change, 210; % 9
-        320, 210; % 10
-        300, 210  % bottom left
-    ];
+
+
+
+
+%% Funkcja do zamiany wspolrzednych matematycznych na pikselowe i odwrotnie
+% x, y - współrzędne
+% M, N - szerokość i wysokość obrazu
+% dx, dy - rozmiar pojedynczego piksela
+
+function [i,j] = mat_to_pix(x, y, M, N, dx, dy)
+    T = [1/dx, 0,    M/2;
+         0,   -1/dy, N/2;
+         0,    0,    1];
+    temp = [x; y; 1];
+    res = T * temp;
+    i = round(res(1)/res(3));
+    j = round(res(2)/res(3));
 end
 
-
-%% Funkcja generujaca punkty krzywej b-sklejanej
-% Funkcja wyznacza punkty zamknietej krzywej b-sklejanej stopnia drugiego
-% na podstawie zadanych punktow kontrolnych.
-%
-% W celu uzyskania zamknietej krzywej do tablicy punktow kontrolnych
-% dopisywane sa dwa pierwsze punkty. Nastepnie wyznaczane sa funkcje
-% bazowe stopnia 0, 1 i 2, a na ich podstawie wspolrzedne punktow krzywej.
-%
-% Dodatkowo zastosowano normalizacje wag funkcji bazowych, co pozwala
-% uniknac blednych punktow krzywej w poblizu (0,0).
-function curve = curves(points)
-    % points - punkty kontrolne [n x 2]
-    % samples - liczba probek na calej krzywej
-
-    % domkniecie krzywej dla stopnia 2
-    points = [points; points(1:2,:)];
-
-    n = size(points,1);      % liczba punktow kontrolnych uzytych w sumie
-    M = n + 2;               % bo poly2 ma M-2 funkcji bazowych
-
-    % jednostajny wektor wezlow w [0,1]
-    T = linspace(0,1,M+1);
-
-    % probkowanie parametru
-    t = 0:0.00015:1;
-
-    % baza stopnia 0,1,2
-    B0 = bspline0(T,t,M);
-    B1 = bspline1(T,t,M,B0);
-    B2 = bspline2(T,t,M,B1);
-
-    % normalizacja wierszy przez sumę wag aby wyeliminować linie do punktu (0,0)
-
-    % suma wag w kazdym punkcie parametru
-    s = sum(B2,2);
-
-    % usuniecie wierszy zerowych / bardzo malych
-    valid = s > 1e-12;
-    B2 = B2(valid,:);
-    s = s(valid);
-
-    % normalizacja - to usuwa "ciagniecie" do (0,0)
-    x = (B2 * points(:,1)) ./ s;
-    y = (B2 * points(:,2)) ./ s;
-
-    curve = [x y];
+function [i,j] = pix_to_mat(x, y, M, N, dx, dy)
+    T = [dx,  0, -M*dx/2;
+         0,  -dy, N*dy/2;
+         0,   0,  1];
+    res = T * [x; y; 1];
+    i = res(1)/res(3);
+    j = res(2)/res(3);
 end
 
-%% Funkcja rysujaca krzywa na obrazie
-% Funkcja nanosi na obraz kolejne punkty wyznaczonej krzywej.
-% Kazdy punkt krzywej jest zaokraglany do najblizszego piksela,
-% a nastepnie zapisywany na obrazie zadanym kolorem.
-function Im = drawCurve(Im, curve, color)
-    % Im    - obraz wejsciowy
-    % curve - tablica punktow krzywej [x y]
-    % color - wartosc jasnosci / koloru rysowanego punktu
-    n = size(curve,1);
-    for k = 1:n
-        x = round(curve(k,1));
-        y = round(curve(k,2));
+%% Funkcja rysuje odcinek na obrazie monochromatycznym.
+function Im = line(Im, ya, xa, yb, xb, dx, dy, color)
+    % Im - obraz
+    % (xa, ya) - punkt poczatkowy
+    % (xb, yb) - punkt koncowy
+    % color - kolor linii
 
-        if x >= 1 && x <= size(Im,2) && y >= 1 && y <= size(Im,1)
-            Im(y,x) = color;
+    [Y, X] = size(Im);
+
+    if (abs(yb-ya) > abs(xb-xa))          % stroma linia     
+        % zamiana wspolrzednych                           
+        x0 = ya; 
+        y0 = xa; 
+        x1 = yb;
+        y1 = xb;  
+
+        % zamiana rozmiarow X i Y
+        temp = X; X = Y; Y = temp;
+
+        zamiana = 1;                                             
+    else
+        x0 = xa;
+        y0 = ya; 
+        x1 = xb;
+        y1 = yb;
+
+        zamiana = 0; 
+    end
+
+    % zamiana poczatku i konca linii, zeby zaczynac od lewej
+    if(x0 > x1) 
+        temp1 = x0; x0 = x1; x1 = temp1;
+        temp2 = y0; y0 = y1; y1 = temp2;
+    end
+
+    dx = abs(x1 - x0) ;                % odleglosc x
+    dy = abs(y1 - y0);                 % odleglosc y
+    sy = sign(y1 - y0);                % znak przyrostu w kierunku y
+
+    x = x0; y = y0;                    % inicjalizacja
+    if x > 0 && x <= X && y > 0 && y <= Y  
+        if (zamiana == 0)                                
+            Im(y,x) = color;           % rysowanie punktu
+        else 
+            Im(x,y) = color;
+        end
+    end
+
+    error = 2*dy - dx ;                % inicjalizacja bledu
+    for i = 0:dx-1    
+
+        error = error + 2*dy;          % modyfikacja bledu
+        if (error > 0)                                
+            y = y + sy;                             
+            error = error - 2*dx;                      
+        end
+
+        x = x + 1;                     % zwiekszamy x
+        if x > 0 && x <= X && y > 0 && y <= Y  
+            if (zamiana == 0)                                
+                Im(y,x) = color;          % rysowanie punktu
+            else                                         
+                Im(x,y) = color;
+            end
         end
     end
 end
 
+
+%% Funkcja do wyznaczania parametrow plaszczyzny Ax+By+Cz+D=0 przechodzacej przez trzy punkty p1,p2,p3
+function [A, B, C, D] = plane(p1,p2,p3)
+    A = det([p1(2),p1(3),1;
+             p2(2),p2(3),1;
+             p3(2),p3(3),1]);
+    B = -det([p1(1),p1(3),1;
+              p2(1),p2(3),1;
+              p3(1),p3(3),1]);
+    C = det([p1(1),p1(2),1;
+             p2(1),p2(2),1;
+             p3(1),p3(2),1]);
+    D = -det([p1(1),p1(2),p1(3);
+              p2(1),p2(2),p2(3);
+              p3(1),p3(2),p3(3)]);
+end
+
+%% Funkcja do wyznaczania odleglosci punktu [x,y,z] od plaszczyzny o rownaniu Ax+By+Cz+D=0
+% odleglosc mierzona jest wzdluz prostej o wektorze kierunkowym [l,m,n]
+% zwraca rowniez punkt przeciecia z plaszczyzna
+
+function [d,x1,y1,z1] = dist_to_plane(plane, x, y, z, l, m, n)
+    ro = (plane(1)*x+plane(2)*y+plane(3)*z+plane(4))/(plane(1)*l+plane(2)*m+plane(3)*n);
+    x1 = x-l*ro; y1 = y-m*ro; z1 = z-n*ro;
+    d = sqrt((x-x1)^2+(y-y1)^2+(z-z1)^2);
+end
 
 %% Funkcja wypelnia zamkniety obszar obrazu metoda floodfill.
 function Im = floodfill(Im, y, x, T, color)
@@ -329,7 +786,7 @@ function Im = floodfill(Im, y, x, T, color)
     if Im(y,x) ~= T
         %disp('Piksel startowy ma zla jasnosc.'); 
         return;
-        % w naszym kodzie oznacza to ze trafilismy na krawedz - a wiec trojkat jest obrocony do nas bokiem.
+        % w naszym kodzie oznacza to że trafiliśmy na krawędź - a więc trójkąt jest obrucony do nas bokiem.
     end
 
     % jesli nowa jasnosc taka sama jak stara, nic nie trzeba robic
@@ -349,6 +806,9 @@ function Im = floodfill(Im, y, x, T, color)
         cy = Q(head,1);
         cx = Q(head,2);
         head = head + 1;
+
+        % 4-sasiedztwo: gora, dol, lewo, prawo
+
         % gora
         ny = cy - 1;
         nx = cx;
@@ -357,6 +817,7 @@ function Im = floodfill(Im, y, x, T, color)
             Q(tail,:) = [ny, nx];
             Im(ny,nx) = color;
         end
+
         % dol
         ny = cy + 1;
         nx = cx;
@@ -365,6 +826,7 @@ function Im = floodfill(Im, y, x, T, color)
             Q(tail,:) = [ny, nx];
             Im(ny,nx) = color;
         end
+
         % lewo
         ny = cy;
         nx = cx - 1;
@@ -373,6 +835,7 @@ function Im = floodfill(Im, y, x, T, color)
             Q(tail,:) = [ny, nx];
             Im(ny,nx) = color;
         end
+
         % prawo
         ny = cy;
         nx = cx + 1;
@@ -383,3 +846,9 @@ function Im = floodfill(Im, y, x, T, color)
         end
     end
 end
+
+
+
+
+
+
